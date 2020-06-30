@@ -10,10 +10,11 @@ https://yyyaaannn.ew.r.appspot.com/?q_route=Helsinki%20Canberra%20Sydney%20Oslo&
 
 # Tips for using GCP Cloud Shell
 
-Pull from Git if any
+Pull from Git if applicable (clone or pull)
 
 ```
 git clone https://github.com/yyyaaan/gcp_app
+git pull origin master
 ```
 
 Create virtual environment on GCP Shell
