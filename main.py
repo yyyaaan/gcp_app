@@ -2,6 +2,7 @@ import concurrent.futures
 import flask
 import plotly
 import json
+import pyarrow
 import plotly.express as px
 import plotly.graph_objs as go
 from google.cloud import bigquery
@@ -36,7 +37,7 @@ def main():
     return flask.redirect(
         flask.url_for(
             "results",
-            text=q_route + q_ddate + q_rdate,
+            q_route=q_route,
             project_id=query_job.project,
             job_id=query_job.job_id,
             location=query_job.location,
@@ -49,6 +50,7 @@ def results():
     project_id = flask.request.args.get("project_id")
     job_id = flask.request.args.get("job_id")
     location = flask.request.args.get("location")
+    q_route = flask.request.args.get("q_route")
 
     query_job = bigquery_client.get_job(job_id, project=project_id, location=location,)
 
@@ -62,20 +64,21 @@ def results():
 
     # add selected route
     df_sel = df[df['route'] == q_route]
-    the_df = df_sel[df_sel['flight'] == df_sel.flight.unique()[0]]
-    fig.add_trace(go.Scatter(x=the_df.tss, y=the_df.eur, name='selected route'), 2 ,1)
-    the_df = df_sel[df_sel['flight'] == df_sel.flight.unique()[1]]
-    fig.add_trace(go.Scatter(x=the_df.tss, y=the_df.eur, name='selected route'), 1 ,1)
+    if df_sel.flight.unique().shape == (2,):
+        the_df = df_sel[df_sel['flight'] == df_sel.flight.unique()[0]]
+        fig.add_trace(go.Scatter(x=the_df.tss, y=the_df.eur, name='selected route'), 2 ,1)
+        the_df = df_sel[df_sel['flight'] == df_sel.flight.unique()[1]]
+        fig.add_trace(go.Scatter(x=the_df.tss, y=the_df.eur, name='selected route'), 1 ,1)
 
     # less cluster
     fig.for_each_annotation(lambda a: a.update(text=a.text.replace("flight=", "")))
     fig.for_each_annotation(lambda a: a.update(text=a.text.replace("time=", "")))
-    fig.for_each_trace(lambda t: t.update(name=t.name.replace("route=", "")))    
+    fig.for_each_trace(lambda t: t.update(name=t.name.replace("route=", "")))
     
     # output
     return flask.render_template("result.html", 
                                  plot=json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder), 
-                                 text=flask.request.args.get("text"))
+                                 text="Double click to filter routes; Hover to view details")
 
 
 if __name__ == "__main__":
