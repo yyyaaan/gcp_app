@@ -3,15 +3,17 @@ import flask
 import plotly
 import json
 import plotly.express as px
+import plotly.graph_objs as go
 from google.cloud import bigquery
 
 app = flask.Flask(__name__)
 bigquery_client = bigquery.Client()
 QUERY =  """
-  select distinct route, concat(`from`, '>', `to`, ' on ',  FORMAT_DATE("%d%b", ddate)) as flight, ceiling(eur) as eur, cast(tss as DATE) as tss
+  select distinct route, concat(`from`, ' > ', `to`, ' on ',  FORMAT_DATE("%d%b", ddate)) as flight, ceiling(eur) as eur, cast(tss as DATE) as tss
   from `yyyaaannn.Explore.QR01`
   where (`from` = '{}' and `to` = '{}' and `ddate` = DATE('{}'))
      or (`from` = '{}' and `to` = '{}' and `ddate` = DATE('{}'))
+  order by flight, tss
 """
 
 
@@ -25,7 +27,7 @@ def main():
     # override if empty
     if q_ddate is None: q_ddate = "2021-01-01"
     if q_rdate is None: q_rdate = "2021-01-06"
-    if q_route is None: q_route = "Helsinki Canberra|Sydney Oslo"
+    if q_route is None: q_route = "Helsinki Sydney|Sydney Helsinki"
 
     q_dests = q_route.replace("|", " ").split(" ")
 
@@ -55,11 +57,25 @@ def results():
     except concurrent.futures.TimeoutError:
         return flask.render_template("timeout.html", job_id=query_job.job_id)
 
-    fig = px.bar(df, x='tss', y='eur', color='route', barmode='group', facet_row='flight', height=900)
-    
-    graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+    fig = px.bar(df, x='tss', y='eur', color='route', barmode='group', facet_row='flight', 
+                 range_y=[0, 5000], height=900, template='plotly_white')
 
-    return flask.render_template("result.html", plot=graphJSON, text= flask.request.args.get("text"))
+    # add selected route
+    df_sel = df[df['route'] == q_route]
+    the_df = df_sel[df_sel['flight'] == df_sel.flight.unique()[0]]
+    fig.add_trace(go.Scatter(x=the_df.tss, y=the_df.eur, name='selected route'), 2 ,1)
+    the_df = df_sel[df_sel['flight'] == df_sel.flight.unique()[1]]
+    fig.add_trace(go.Scatter(x=the_df.tss, y=the_df.eur, name='selected route'), 1 ,1)
+
+    # less cluster
+    fig.for_each_annotation(lambda a: a.update(text=a.text.replace("flight=", "")))
+    fig.for_each_annotation(lambda a: a.update(text=a.text.replace("time=", "")))
+    fig.for_each_trace(lambda t: t.update(name=t.name.replace("route=", "")))    
+    
+    # output
+    return flask.render_template("result.html", 
+                                 plot=json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder), 
+                                 text=flask.request.args.get("text"))
 
 
 if __name__ == "__main__":
