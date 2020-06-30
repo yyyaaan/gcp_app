@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
-<title>Query Result</title>
+<title>Plot Pricing Trend</title>
+<script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>    
 
-<table>
-    <tr>
-        <th>URL</th>
-        <th>View Count</th>
-    </tr>
-    {% for result in results %}
-    <tr>
-        <td>{{ result[0] }}</td>
-        <td>{{ result[1] }}</td>
-    </tr>
-    {% endfor %}
-</table>
+<body>
+<div class="chart" id="bargraph">
+    <script>
+        var graphs = {{plot | safe}};
+        Plotly.plot('bargraph',graphs,{});
+    </script>
+</div>
+</body>
