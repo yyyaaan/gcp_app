@@ -17,6 +17,8 @@ git clone https://github.com/yyyaaan/gcp_app
 git pull origin master
 ```
 
+Creating SSH keys for GIT [here](https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+
 Create virtual environment on GCP Shell
 
 ```
